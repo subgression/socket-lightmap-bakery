@@ -209,23 +209,18 @@ void init_window()
     log = gtk_text_view_new();
     gtk_text_view_set_editable(GTK_TEXT_VIEW(log), FALSE);
     gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(log), FALSE);
+    g_object_set(log, "margin", 20, NULL);
     gtk_box_pack_start(GTK_BOX(right_box), log, TRUE, TRUE, 5);
 
     //Table that handles the two columns
     GtkWidget *table;
     table = gtk_grid_new();
+    g_object_set(table, "margin", 20, NULL);
     gtk_grid_set_row_homogeneous(GTK_GRID(table), TRUE);
     gtk_grid_set_column_homogeneous(GTK_GRID(table), TRUE);
     gtk_grid_attach(GTK_GRID(table), left_box, 0, 0, 1, 2);
     gtk_grid_attach(GTK_GRID(table), right_box, 1, 0, 1, 2);
     gtk_container_add(GTK_CONTAINER(window), table);
-
-    //Adding css
-    GtkCssProvider *cssProvider = gtk_css_provider_new();
-    gtk_css_provider_load_from_path(cssProvider, "../lmb/theme.css", NULL);
-    gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
-                                              GTK_STYLE_PROVIDER(cssProvider),
-                                              GTK_STYLE_PROVIDER_PRIORITY_USER);
 
     gtk_widget_show_all(window);
     gtk_main();

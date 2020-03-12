@@ -83,7 +83,7 @@ void send_test_msg(int sock)
 }
 
 //Sends a file to the server, awaiting response
-void send_file(int sock, char * filename)
+void send_file(int sock, char *filename)
 {
     char buffer[LMB_BUFFER_SIZE];
     int total_read = 0;
@@ -91,12 +91,13 @@ void send_file(int sock, char * filename)
 
     // Trying to send the request to the server and waiting for response
     int send_msg_counter = 0;
-    while (send_msg_counter <= 5) 
+    while (send_msg_counter <= 5)
     {
         lmb_send_msg(sock, LMB_REQ_SEND_FILE);
         lmb_recv_msg(sock, buffer);
         send_msg_counter++;
-        if (strncmp(buffer, LMB_ACK_SEND_FILE, sizeof(LMB_ACK_SEND_FILE)) == 0) break;
+        if (strncmp(buffer, LMB_ACK_SEND_FILE, sizeof(LMB_ACK_SEND_FILE)) == 0)
+            break;
     }
 
     //If we sended too many requests without response, exception error in comunication
@@ -149,7 +150,7 @@ void send_file(int sock, char * filename)
         lmb_remove_file(tmp_filename);
         lmb_recv_msg(sock, buffer);
         bzero(buffer, LMB_BUFFER_SIZE);
-        
+
         //Waiting for bake process to end
         //printf("Waiting for bake process... (Waiting for ACK)\n");
         //Waiting for the default ACK message
@@ -181,7 +182,7 @@ void client_sock_loop(void *ip_addr)
         return;
     }
 
-    if (strlen((char *) ip_addr) <= 0)
+    if (strlen((char *)ip_addr) <= 0)
     {
         printf("Must insert a correct IP!! Returning...\n");
         return;
@@ -191,7 +192,7 @@ void client_sock_loop(void *ip_addr)
     //Creates the socket for comunication
     for (int i = 0; i < files_list_count; i++)
     {
-        int sock = create_socket((char *) ip_addr);
+        int sock = create_socket((char *)ip_addr);
         //Creating a copy in the TMP folder
         //to avoid any path errors
         lmb_create_tmp_copy(files_list[i].path);
@@ -255,7 +256,7 @@ void bake_button_clicked(GtkWidget *bake_button, gpointer window)
     if (socket_created == 0)
     {
         // Obtaining the ip address from the GTK_ENTRY
-        char * ip_addr;
+        char *ip_addr;
         ip_addr = (char *)gtk_entry_get_text(GTK_ENTRY(ip_entry));
         // Creating the thread
         pthread_t id;
@@ -286,25 +287,44 @@ void update_files_ui()
 {
     gtk_widget_destroy(file_list_box);
     file_list_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
+    //Adding the header
+    GtkWidget *header;
+    header = gtk_grid_new();
+    gtk_grid_set_column_homogeneous(GTK_GRID(header), TRUE);
+    gtk_grid_set_row_spacing(GTK_GRID(header), 1);
+
+    GtkWidget *file_name_header;
+    file_name_header = gtk_label_new("Filename");
+    gtk_grid_attach(GTK_GRID(header), file_name_header, 0, 0, 1, 1);
+
+    GtkWidget *script_header;
+    script_header = gtk_label_new("Script");
+    gtk_grid_attach(GTK_GRID(header), script_header, 1, 0, 1, 1);
+
+    gtk_box_pack_start(GTK_BOX(file_list_box), header, TRUE, TRUE, 0);
     for (int i = 0; i < files_list_count; i++)
     {
         //Adding the box
         GtkWidget *inner_grid;
         inner_grid = gtk_grid_new();
+        gtk_grid_set_column_homogeneous(GTK_GRID(inner_grid), TRUE);
+        gtk_grid_set_row_spacing(GTK_GRID(inner_grid), 1);
         //label of the file
         GtkWidget *file_label;
         file_label = gtk_label_new(files_list[i].filename);
-        gtk_grid_attach(GTK_GRID(inner_grid), file_label, 0, i, 20, 20);
+        gtk_grid_attach(GTK_GRID(inner_grid), file_label, 0, i, 1, 1);
         //Combo box for script selection
         GtkWidget *combo_box;
         combo_box = gtk_combo_box_text_new();
         //Adding the strings to the combo box
-        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_box), "join_n_bake");
-        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_box), "just_bake");
+        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_box), "1K_join_n_bake.py");
+        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_box), "2K_join_n_bake.py");
+        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_box), "1K_bake_all.py");
+        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_box), "2K_bake_all.py");
         gtk_combo_box_set_active(GTK_COMBO_BOX_TEXT(combo_box), 0);
-        gtk_grid_attach(GTK_GRID(inner_grid), combo_box, 20, i, 20, 20);
+        gtk_grid_attach(GTK_GRID(inner_grid), combo_box, 1, i, 1, 1);
         //Pack of the inner_box
-        gtk_box_pack_start(GTK_BOX(file_list_box), inner_grid, TRUE, TRUE, 2);
+        gtk_box_pack_start(GTK_BOX(file_list_box), inner_grid, TRUE, TRUE, 0);
     }
     gtk_box_pack_start(GTK_BOX(right_box), file_list_box, TRUE, TRUE, 10);
     gtk_widget_show_all(window);
@@ -313,7 +333,7 @@ void update_files_ui()
 void init_window()
 {
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
+    gtk_window_set_default_size(GTK_WINDOW(window), 400, 200);
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
     // Box dei bottoni
@@ -333,7 +353,7 @@ void init_window()
     //Entry for the IP
     ip_entry = gtk_entry_new();
     gtk_box_pack_start(GTK_BOX(left_box), ip_entry, TRUE, TRUE, 5);
-    //Button that allows to add a .blend file 
+    //Button that allows to add a .blend file
     GtkWidget *add_button;
     add_button = gtk_button_new_with_label("Add a file");
     g_signal_connect(add_button, "clicked", G_CALLBACK(add_button_clicked), NULL);
@@ -346,23 +366,31 @@ void init_window()
 
     //Box for the files
     right_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 60);
+    //Adding the header
+    //gtk_widget_destroy(file_list_box);
+    file_list_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
+    GtkWidget *header;
+    header = gtk_grid_new();
+    gtk_grid_set_column_homogeneous(GTK_GRID(header), TRUE);
+    gtk_grid_set_row_spacing(GTK_GRID(header), 1);
+    GtkWidget *file_name_header;
+    file_name_header = gtk_label_new("Filename");
+    gtk_grid_attach(GTK_GRID(header), file_name_header, 0, 0, 1, 1);
+    GtkWidget *script_header;
+    script_header = gtk_label_new("Script");
+    gtk_grid_attach(GTK_GRID(header), script_header, 1, 0, 1, 1);
+    gtk_box_pack_start(GTK_BOX(right_box), file_list_box, TRUE, TRUE, 10);
 
     //Table that handles the two boxes
     GtkWidget *table;
     table = gtk_grid_new();
-    gtk_grid_set_row_homogeneous(GTK_GRID(table), TRUE);
-    gtk_grid_set_column_homogeneous(GTK_GRID(table), TRUE);
+    //gtk_grid_set_row_homogeneous(GTK_GRID(table), TRUE);
+    //gtk_grid_set_column_homogeneous(GTK_GRID(table), TRUE);
+    gtk_grid_set_column_spacing(GTK_GRID(table), 20);
     gtk_grid_attach(GTK_GRID(table), left_box, 0, 0, 1, 2);
     gtk_grid_attach(GTK_GRID(table), right_box, 1, 0, 1, 2);
+    g_object_set(table, "margin", 20, NULL);
     gtk_container_add(GTK_CONTAINER(window), table);
-
-    //Css style
-    GtkCssProvider *cssProvider = gtk_css_provider_new();
-    gtk_css_provider_load_from_path(cssProvider, "../lmb/theme.css", NULL);
-    gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
-                                              GTK_STYLE_PROVIDER(cssProvider),
-                                              GTK_STYLE_PROVIDER_PRIORITY_USER);
-
     gtk_widget_show_all(window);
     gtk_main();
 }
