@@ -135,12 +135,9 @@ void server_sock_loop(void *fd)
                 strcat(cmd, filename_to_bake);
                 strcat(cmd, " --python ./python/");
                 strcat(cmd, bake_script);
-                //[TODO] Allow the app to accept variable lightmapper samples and atlas size
-                // since the other script allows it
-                strcat(cmd, " -- 1024 128");
-                printf("Executing the script %s \n", cmd);
-                add_log_entry("Executing the script:\n");
-                add_log_entry(cmd);
+                printf("Executing the script %s \n", bake_script);
+                add_log_entry("Executing the script: ");
+                add_log_entry(bake_script);
                 add_log_entry("\n");
                 system(cmd);
                 //Sending a defualt ACK message to the client
@@ -189,7 +186,7 @@ void server_sock_loop(void *fd)
 void init_window()
 {
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
+    //gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
     // Box 

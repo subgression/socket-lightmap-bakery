@@ -16,20 +16,12 @@
 #define PORT 8080
 #define LMB_BUFFER_SIZE 1024
 
-//enum containing the script
-enum bake_script
-{
-    GODZARENA_CHARACTER,
-    GODZARENA_MAP,
-    ROCKETRACE_ROCKET
-};
-
 //Struct containing all the informatiomn of the file to be baked
 struct bake_file
 {
     char *path;
     char *filename;
-    enum bake_script script;
+    char script[128];
 };
 
 enum connection_result

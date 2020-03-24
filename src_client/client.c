@@ -4,6 +4,8 @@
 static GtkWidget *window, *left_box, *right_box;
 static GtkWidget *file_list_box;
 struct bake_file files_list[LMB_MAX_FILES_CLIENT];
+char file_status[LMB_MAX_FILES_CLIENT][64];
+
 int files_list_count = 0;
 //Entry for the ip
 static GtkWidget *ip_entry;
@@ -16,15 +18,18 @@ int socket_created = 0;
 /*--------------------------------------
     Prototypes
 ----------------------------------------*/
+void default_bake_status();
 void create_client();
 void start_client(int);
 void print_list_of_files();
 void add_button_clicked(GtkWidget *, gpointer);
 void connection_test_button_clicked(GtkWidget *, gpointer);
 void bake_button_clicked(GtkWidget *, gpointer);
+void send_file(int, char *, char*, int);
 struct bake_file path_to_struct(char *);
 char *filename_from_path(char *);
 void update_files_ui();
+void change_file_status(int, char*);
 void init_window();
 
 /*--------------------------------------
@@ -33,6 +38,7 @@ void init_window();
 // gcc 007_gtk.c -o 007_gtk `pkg-config --cflags gtk+-3.0` `pkg-config --libs gtk+-3.0`
 int main(int argc, char **argv)
 {
+    default_bake_status();
     gtk_init(&argc, &argv);
     init_window();
     return 0;
@@ -83,7 +89,7 @@ void send_test_msg(int sock)
 }
 
 //Sends a file to the server, awaiting response
-void send_file(int sock, char *filename)
+void send_file(int sock, char *filename, char* bake_script, int i)
 {
     char buffer[LMB_BUFFER_SIZE];
     int total_read = 0;
@@ -114,6 +120,7 @@ void send_file(int sock, char *filename)
     // - Recieve the file from the server
     if (strncmp(buffer, LMB_ACK_SEND_FILE, sizeof(LMB_ACK_SEND_FILE)) == 0)
     {
+        change_file_status(i, "Sending file");
         printf("Server accpted the request, starting to send the file...\n");
 
         // - Send the filename to the server
@@ -130,7 +137,8 @@ void send_file(int sock, char *filename)
 
         // - Send the script to be used for the baking procedure
         //printf("Sending the script...\n");
-        lmb_send_msg(sock, "join_n_bake.py");
+        printf("Sending bake script %s", bake_script);
+        lmb_send_msg(sock, bake_script);
         lmb_recv_msg(sock, buffer);
         // Handling errors, if the response is not a LMB_STD_ACK there is an error in comunication
         if (strncmp(buffer, LMB_STD_ACK, sizeof(LMB_STD_ACK)) != 0)
@@ -153,6 +161,7 @@ void send_file(int sock, char *filename)
 
         //Waiting for bake process to end
         //printf("Waiting for bake process... (Waiting for ACK)\n");
+        change_file_status(i, "Starting bake");
         //Waiting for the default ACK message
         lmb_recv_msg(sock, buffer);
         // Handling errors, if the response is not a LMB_STD_ACK there is an error in comunication
@@ -170,6 +179,7 @@ void send_file(int sock, char *filename)
         strcat(result_filename, filename);
         strcat(result_filename, ".zip");
         lmb_recv_file(sock, result_filename);
+        change_file_status(i, "File Baked!");
     }
 }
 
@@ -196,7 +206,7 @@ void client_sock_loop(void *ip_addr)
         //Creating a copy in the TMP folder
         //to avoid any path errors
         lmb_create_tmp_copy(files_list[i].path);
-        send_file(sock, files_list[i].filename);
+        send_file(sock, files_list[i].filename, files_list[i].script, i);
         //Closes the socket
         close(sock);
     }
@@ -211,12 +221,12 @@ void print_list_of_files()
     for (int i = 0; i < files_list_count; i++)
     {
         printf("Nome file: %s \n", files_list[i].filename);
-        printf("Script da eseguire: %d \n", files_list[i].script);
+        printf("Script da eseguire: %s \n", files_list[i].script);
     }
 }
 
 /*--------------------------------------
-    Callbacks per gli elementi dell'UI
+    Callbacks for UI elements
 ----------------------------------------*/
 //Quando viene clickato il pulsante, viene visualizzato il dialog e scelto il file da aggiungere alla coda
 void add_button_clicked(GtkWidget *add_button, gpointer window)
@@ -275,8 +285,18 @@ struct bake_file path_to_struct(char *path)
     struct bake_file f;
     f.path = path;
     f.filename = filename_from_path(path);
-    f.script = GODZARENA_MAP;
+    printf("Adding default script...\n");
+    strcpy(f.script, "1K_join_n_bake.py");
     return f;
+}
+
+// Sets to the default value all the entry in the file_status array
+void default_bake_status()
+{
+    for (int i = 0; i < LMB_MAX_FILES_CLIENT; i++)
+    {
+        strcpy(file_status[i], "Waiting for bake");
+    }
 }
 
 /*--------------------------------------
@@ -301,6 +321,10 @@ void update_files_ui()
     script_header = gtk_label_new("Script");
     gtk_grid_attach(GTK_GRID(header), script_header, 1, 0, 1, 1);
 
+    GtkWidget *bake_status;
+    bake_status = gtk_label_new("Status");
+    gtk_grid_attach(GTK_GRID(header), bake_status, 2, 0, 1, 1);
+
     gtk_box_pack_start(GTK_BOX(file_list_box), header, TRUE, TRUE, 0);
     for (int i = 0; i < files_list_count; i++)
     {
@@ -323,11 +347,25 @@ void update_files_ui()
         gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_box), "2K_bake_all.py");
         gtk_combo_box_set_active(GTK_COMBO_BOX_TEXT(combo_box), 0);
         gtk_grid_attach(GTK_GRID(inner_grid), combo_box, 1, i, 1, 1);
+        //Adding the current status
+        char curr_stat[64];
+        strcpy(curr_stat, file_status[i]);
+        GtkWidget *bake_stat;
+        bake_stat = gtk_label_new(curr_stat);
+        gtk_grid_attach(GTK_GRID(inner_grid), bake_stat, 2, i, 1, 1);
+
         //Pack of the inner_box
         gtk_box_pack_start(GTK_BOX(file_list_box), inner_grid, TRUE, TRUE, 0);
     }
     gtk_box_pack_start(GTK_BOX(right_box), file_list_box, TRUE, TRUE, 10);
     gtk_widget_show_all(window);
+}
+
+// Change the status to a given file
+void change_file_status(int index, char* status)
+{
+    strcpy(file_status[index], status);
+    update_files_ui();
 }
 
 void init_window()
